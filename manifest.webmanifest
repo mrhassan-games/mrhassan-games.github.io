@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Sky Hopper",
+  "short_name": "Sky Hopper",
+  "description": "A colorful 2.5D platformer: jump, swim and beat 4 bosses. Works offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#141833",
+  "theme_color": "#141833",
+  "categories": ["games"],
+  "lang": "en",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
