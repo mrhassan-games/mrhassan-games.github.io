@@ -1,0 +1,11 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mrhassan.hophero",
+      "sha256_cert_fingerprints":
+        ["A2:9B:0F:F8:C8:01:F0:2A:18:91:C8:94:D3:39:23:E4:A3:DD:21:3B:E8:9F:41:91:DD:08:12:91:FD:15:F8:F7"]
+    }
+  }
+]
