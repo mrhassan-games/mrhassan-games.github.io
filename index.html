@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Sky Hopper</title>
+<title>Hop Hero</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -183,9 +183,9 @@
   <!-- Splash / title screen -->
   <div id="splash" class="overlay ui show">
     <div class="splash-inner">
-      <div class="logo big" role="img" aria-label="Sky Hopper">
-        <span class="l1"><span>S</span><span>K</span><span>Y</span></span>
-        <span class="l2"><span>H</span><span>O</span><span>P</span><span>P</span><span>E</span><span>R</span></span>
+      <div class="logo big" role="img" aria-label="Hop Hero">
+        <span class="l1"><span>H</span><span>O</span><span>P</span></span>
+        <span class="l2"><span>H</span><span>E</span><span>R</span><span>O</span></span>
         <svg class="lolly" viewBox="0 0 40 70" aria-hidden="true">
           <rect x="18" y="34" width="4" height="34" rx="2" fill="#fff"/>
           <circle cx="20" cy="20" r="18" fill="#ff5fa8" stroke="#ffd43b" stroke-width="2.5"/>
@@ -196,15 +196,15 @@
       <div class="ribbon">A Lollipop Adventure</div>
       <div class="tap" id="tapStart">Tap to start</div>
     </div>
-    <div class="ver">v1.4</div>
+    <div class="ver">v1.5</div>
   </div>
 
   <!-- Main menu -->
   <div id="menu" class="overlay ui">
     <div class="card menu-card">
-      <div class="logo small" role="img" aria-label="Sky Hopper">
-        <span class="l1"><span>S</span><span>K</span><span>Y</span></span>
-        <span class="l2"><span>H</span><span>O</span><span>P</span><span>P</span><span>E</span><span>R</span></span>
+      <div class="logo small" role="img" aria-label="Hop Hero">
+        <span class="l1"><span>H</span><span>O</span><span>P</span></span>
+        <span class="l2"><span>H</span><span>E</span><span>R</span><span>O</span></span>
         <svg class="lolly" viewBox="0 0 40 70" aria-hidden="true">
           <rect x="18" y="34" width="4" height="34" rx="2" fill="#fff"/>
           <circle cx="20" cy="20" r="18" fill="#ff5fa8" stroke="#ffd43b" stroke-width="2.5"/>
@@ -228,8 +228,8 @@
     <div class="card" style="max-width:480px">
       <h2>How to play</h2>
       <div class="tut">
-        <span class="t-touch">◀ ▶ buttons: run<br>▲ button: jump (hold = higher)<br>✦ button: swing your lollipop<br></span>
-        <span class="t-keys">← → / A D: run<br>Space / ↑ / W: jump (hold = higher)<br>X / J: swing your lollipop<br>P: pause &nbsp;•&nbsp; M: mute &nbsp;•&nbsp; N: music<br></span>
+        <span class="t-touch">◀ ▶ buttons: run<br>▲ button: jump (hold = higher, tap again in the air = double jump)<br>✦ button: swing your lollipop<br></span>
+        <span class="t-keys">← → / A D: run<br>Space / ↑ / W: jump (hold = higher, press again in the air = double jump)<br>X / J: swing your lollipop<br>P: pause &nbsp;•&nbsp; M: mute &nbsp;•&nbsp; N: music<br></span>
         Jump on enemies or bop them with the lollipop.<br>
         Avoid spikes and pits.<br>
         Bounce on springs, float on fans, hang from bars and swing on vines (▲ to let go).<br>
@@ -326,7 +326,7 @@ const TILE = 32, ROWS = 12, VIEW_H = ROWS * TILE;   // world is always 384 units
 const STEP = 1 / 120;                               // fixed physics step
 const PHYS = {
   GRAVITY: 1700, MAX_FALL: 720, RUN: 200, ACC_G: 2400, ACC_A: 1600, FRIC: 2600,
-  JUMP_V: 600, JUMP_CUT: 0.45, COYOTE: 0.09, BUFFER: 0.12
+  JUMP_V: 600, AIR_JUMP_V: 520, JUMP_CUT: 0.45, COYOTE: 0.09, BUFFER: 0.12
 };
 const MAX_HEARTS = 3, START_LIVES = 3, ATK_T = 0.2;
 
@@ -437,6 +437,7 @@ const Sound = {
     } catch (e) {}
   },
   jump()   { this.tone(300, 0.14, 'square', 0.12, 640); },
+  airJump() { this.tone(500, 0.12, 'square', 0.1, 1000); this.tone(750, 0.1, 'triangle', 0.08, 1300, 0.04); },
   roar()   { this.tone(140, 0.6, 'sawtooth', 0.22, 60); this.tone(210, 0.5, 'square', 0.08, 90, 0.05); },
   thud()   { this.tone(110, 0.22, 'sine', 0.5, 40); this.noise(0.12, 0.2, 300); },
   swoop()  { this.tone(900, 0.35, 'triangle', 0.15, 250); },
@@ -575,7 +576,7 @@ const Music = {
 };
 // which loop should be playing right now
 function desiredTrack() {
-  if (G.state === 'playing') return G.boss && G.boss.active ? 4 : Math.min(G.levelIndex, 3);
+  if (G.state === 'playing') return G.boss && G.boss.active ? 4 : ([0, 1, 2, 3, 0][G.levelIndex] ?? 0);
   if (G.state === 'menu' || G.state === 'howto') return 0;
   if (G.state === 'settings') return G.settingsFrom === 'paused' ? -1 : 0;
   return -1;   // paused, level clear, game over, victory -> silence (jingles play instead)
@@ -620,6 +621,7 @@ const LEVELS = [
       .sign(39, 9, 'Avoid spikes').spikes(42, 43, 9)
       .coins(45, 47, 9).q(46, 6)
       .sign(51, 9, 'Checkpoint ⚑').at(53, 9, 'C')
+      .sign(56, 9, 'Tap ▲ again in the air!')
       .plat(59, 8, 2).coins(59, 60, 7)
       .ground(63, 88)
       .sign(65, 9, '✦ = lollipop swing!').at(71, 9, 'e')
@@ -780,7 +782,39 @@ const LEVELS = [
       .ground(214, 216, 3)
       .at(222, 9, 'k').coins(218, 230, 6)
       .sign(235, 9, 'Boss ahead!').at(239, 9, 'C')
-      .arena(244, 266, 'puffer').q(250, 5).q(260, 5) }
+      .arena(244, 266, 'puffer').q(250, 5).q(260, 5) },
+
+  { name: 'Candy Clouds', theme: 4, build: () => makeMap(316)
+      .ground(0, 19).at(2, 9, 'P')
+      .sign(5, 9, 'Candy Clouds!').coins(8, 11, 9)
+      .sign(14, 9, 'Big gap? Double jump!').coins(20, 24, 6)
+      .ground(25, 62).at(30, 9, 'e')
+      .plat(35, 5, 5).coins(35, 39, 4).star(37, 3)
+      .at(44, 9, 'E').q(48, 6).at(52, 5, 'b').coins(55, 57, 9)
+      .at(60, 9, 'C')
+      .plat(65, 8, 3).coins(65, 67, 7)
+      .plat(71, 6, 3).coins(71, 73, 5)
+      .plat(78, 7, 3).coins(78, 80, 6).coins(82, 84, 5)
+      .ground(86, 176).at(92, 9, 'e').at(97, 9, 'e').spikes(104, 105, 9).at(109, 5, 'b')
+      .spring(113, 9).plat(115, 3, 4).coins(115, 118, 2)
+      .at(121, 9, 'C')
+      .spikes(126, 142, 9)
+      .plat(128, 7, 2).coins(128, 129, 6)
+      .plat(133, 6, 2).coins(133, 134, 5)
+      .plat(138, 7, 2).coins(138, 139, 6)
+      .at(148, 9, 'E').at(153, 9, 'e')
+      .fan(160, 9, 9)
+      .ground(162, 167, 2).coins(163, 164, 1).star(165, 1).coins(166, 166, 1)
+      .q(171, 6).q(172, 6)
+      .spring(175, 9).bars(175, 191, 5).star(183, 4).coins(178, 188, 3)
+      .ground(192, 222).at(194, 9, 'C')
+      .at(199, 9, 'E').at(203, 5, 'b').at(207, 9, 'e').spikes(211, 212, 9).coins(215, 218, 9)
+      .vine(224, 1, 7).vine(231, 1, 7).coins(226, 229, 9)
+      .ground(237, 315).at(239, 9, 'C')
+      .ground(246, 250, 7).ground(251, 255, 5).coins(246, 250, 6).coins(251, 255, 4)
+      .at(258, 4, 'b').at(262, 9, 'E').at(266, 9, 'e').spikes(270, 272, 9)
+      .sign(276, 9, 'Boss ahead!').at(280, 9, 'C')
+      .arena(285, 307, 'gummy').q(290, 6).q(302, 6) }
 ];
 
 const THEMES = [
@@ -804,6 +838,12 @@ Object.assign(THEMES[3], { water: true, props: ['weed', 'coral', 'weed', 'coral2
 Object.assign(THEMES[0], { props: ['flower', 'flower', 'bush', 'mush', 'tuft'], amb: 'butterfly', deco: 'trees', decoLight: '#7cc98a', decoDark: '#55a368', trunk: '#7d5a3c', haze: 'rgba(214,243,255,.38)', fore: 'rgba(28,70,32,.6)' });
 Object.assign(THEMES[1], { props: ['cactus', 'rock', 'shrub', 'rock'], amb: 'dust', deco: 'mesas', decoLight: '#eaa06e', decoDark: '#bf6e48', trunk: '#8a4527', haze: 'rgba(255,214,160,.32)', fore: 'rgba(90,35,18,.55)' });
 Object.assign(THEMES[2], { props: ['gmush', 'crystal', 'gmush', 'tuft'], amb: 'firefly', deco: 'crystals', decoLight: '#8ff0ff', decoDark: '#4d7fe0', trunk: '#2a2c58', haze: 'rgba(70,70,150,.35)', fore: 'rgba(8,8,36,.65)' });
+
+THEMES.push({ sky: ['#ff9ad5', '#ffe6f4'], far: '#f7b6e0', near: '#e78cc9', dirt: '#e9b886', dirtDark: '#c98f5e', speck: '#fff1dd',
+  grass: '#ff7ec4', grassLight: '#ffd1ea', plat: '#7cc8ff', platDark: '#3f8fcf', platLight: '#c4e9ff',
+  cloud: 'rgba(255,255,255,.95)', sun: '#fff6c2',
+  props: ['flower', 'mush', 'flower', 'tuft'], amb: 'butterfly', deco: 'trees', decoLight: '#ffb8e0', decoDark: '#ff86c4', trunk: '#ffffff',
+  haze: 'rgba(255,225,242,.38)', fore: 'rgba(120,30,80,.5)' });
 
 function parseLevel(idx) {
   const def = LEVELS[idx], b = def.build(), cols = b.cols, g = b.g;
@@ -901,7 +941,7 @@ function moveBody(b, lv, dt) {
 }
 
 function makePlayer(x, y) {
-  return { x, y, w: 22, h: 28, vx: 0, vy: 0, onGround: false, facing: 1, coyote: 0, jumpBuffer: 0, jumping: false,
+  return { x, y, w: 22, h: 28, vx: 0, vy: 0, onGround: false, facing: 1, coyote: 0, jumpBuffer: 0, jumping: false, airJumps: 1,
     knock: 0, prevBottom: y + 28, hearts: maxHearts(), invuln: 0, atkT: 0, atkCD: 0, dead: false, deadT: 0,
     anim: 0, squash: 1, blink: 2, idleT: 0,
     barI: -1, vineI: -1, ang: 0, angV: 0, ropeR: 0, grabCD: 0, boostT: 0, inFan: false, headHit: null, springT: 0, strokeT: 0, bubbleT: 1 };
@@ -961,7 +1001,7 @@ function playerPhysics(p, inp, dt, lv) {
   if (p.barI >= 0) {
     const bar = lv.bars[p.barI];
     if (p.jumpBuffer > 0) {
-      p.jumpBuffer = 0; p.barI = -1; p.grabCD = 0.35; p.vy = -HOP_V; p.jumping = false;
+      p.jumpBuffer = 0; p.barI = -1; p.grabCD = 0.35; p.vy = -HOP_V; p.jumping = false; p.airJumps = 1;
       ev.jumped = true; ev.released = true; return ev;
     }
     p.vx = dir * BAR_SPEED; if (dir) { p.facing = dir; p.anim += dt * 9; }
@@ -976,7 +1016,7 @@ function playerPhysics(p, inp, dt, lv) {
   if (p.vineI >= 0) {
     const v = lv.vines[p.vineI];
     if (p.jumpBuffer > 0) {
-      p.jumpBuffer = 0; p.vineI = -1; p.grabCD = 0.4;
+      p.jumpBuffer = 0; p.vineI = -1; p.grabCD = 0.4; p.airJumps = 1;
       const tvx = p.angV * p.ropeR * Math.cos(p.ang), tvy = -p.angV * p.ropeR * Math.sin(p.ang);
       p.vx = Math.max(-PHYS.RUN * 1.7, Math.min(PHYS.RUN * 1.7, tvx));
       p.vy = Math.min(tvy, 0) - VINE_BOOST; p.boostT = 0.7; p.jumping = false;
@@ -1011,9 +1051,13 @@ function playerPhysics(p, inp, dt, lv) {
     }
   }
   p.coyote = p.onGround ? PHYS.COYOTE : p.coyote - dt;
+  if (p.onGround) p.airJumps = 1;
   if (p.jumpBuffer > 0) {
     if (p.coyote > 0) {
       p.vy = -PHYS.JUMP_V; p.coyote = 0; p.jumpBuffer = 0; p.jumping = true; p.onGround = false; ev.jumped = true;
+    } else if (p.airJumps > 0 && p.jumpBuffer >= PHYS.BUFFER) {
+      // double jump: one extra jump per airtime, on a fresh press in mid-air
+      p.airJumps--; p.vy = -PHYS.AIR_JUMP_V; p.jumpBuffer = 0; p.jumping = true; ev.jumped = true; ev.airJump = true;
     } else p.jumpBuffer -= dt;
   }
   if (p.jumping && !inp.jump && p.vy < 0) { p.vy *= PHYS.JUMP_CUT; p.jumping = false; }
@@ -1033,7 +1077,7 @@ function playerPhysics(p, inp, dt, lv) {
     const fromAbove = p.prevBottom <= sp.y + 10 && feet >= sp.y - 1;
     const walkedOn = p.onGround && Math.abs(cx - (sp.x + sp.w / 2)) < 9 && Math.abs(feet - (sp.y + sp.h)) < 2;
     if (fromAbove || walkedOn) {
-      p.y = sp.y - p.h; p.vy = -SPRING_V; p.onGround = false; p.jumping = false; p.coyote = 0; p.jumpBuffer = 0;
+      p.y = sp.y - p.h; p.vy = -SPRING_V; p.onGround = false; p.jumping = false; p.coyote = 0; p.jumpBuffer = 0; p.airJumps = 1;
       ev.spring = sp; ev.landed = false; break;
     }
   }
@@ -1259,19 +1303,20 @@ const BOSSES = {
   slime:  { name: 'King Slime',    w: 76, h: 58 },
   beetle: { name: 'Captain Shell', w: 84, h: 50 },
   bat:    { name: 'Bat Queen',     w: 74, h: 46 },
-  puffer: { name: 'Puffer King',   w: 66, h: 58 }
+  puffer: { name: 'Puffer King',   w: 66, h: 58 },
+  gummy:  { name: 'Gummy King',    w: 80, h: 62, hp: 4 }
 };
 const BOSS_HP = 3;
 function makeBoss(lv) {
   const a = lv.arena, d = BOSSES[a.type];
-  const b = { type: a.type, name: d.name, w: d.w, h: d.h, hp: BOSS_HP, maxHp: BOSS_HP, x: a.x1 - 150 - d.w, y: 0, vx: 0, vy: 0,
+  const b = { type: a.type, name: d.name, w: d.w, h: d.h, hp: d.hp || BOSS_HP, maxHp: d.hp || BOSS_HP, hops: 0, x: a.x1 - 150 - d.w, y: 0, vx: 0, vy: 0,
     state: 'wait', t: 0, hurtT: 0, dir: -1, look: -1, active: false, defeated: false, deadT: 0, onGround: false, scale: 1 };
   b.y = a.type === 'bat' ? 70 : a.type === 'puffer' ? 150 : 10 * TILE - d.h;
   return b;
 }
 function bossVulnerable(B) {
   if (!B || B.hurtT > 0 || B.defeated) return false;
-  return B.type === 'slime' || (B.type === 'beetle' && B.state === 'dizzy') || (B.type === 'bat' && B.state === 'stuck') ||
+  return B.type === 'slime' || B.type === 'gummy' || (B.type === 'beetle' && B.state === 'dizzy') || (B.type === 'bat' && B.state === 'stuck') ||
     (B.type === 'puffer' && (B.state === 'swim' || B.state === 'deflate'));
 }
 function bossHarmful(B) {
@@ -1295,7 +1340,7 @@ function setGates(on) {
 function startBossFight() {
   const B = G.boss;
   B.active = true; B.t = 0;
-  B.state = { slime: 'idle', beetle: 'walk', bat: 'fly', puffer: 'swim' }[B.type];
+  B.state = { slime: 'idle', gummy: 'idle', beetle: 'walk', bat: 'fly', puffer: 'swim' }[B.type];
   setGates(true);
   G.bossBanner = 2.6; G.shake = 0.3;
   Sound.roar();
@@ -1314,8 +1359,8 @@ function hitBoss(how) {
   Sound.bossHit();
   if (B.hp <= 0) { defeatBoss(); return; }
   B.t = 0;
-  B.state = { slime: 'idle', beetle: 'walk', bat: 'rise', puffer: 'swim' }[B.type];
-  B.vx = 0; if (B.type !== 'slime' && B.type !== 'beetle') B.vy = 0;
+  B.state = { slime: 'idle', gummy: 'idle', beetle: 'walk', bat: 'rise', puffer: 'swim' }[B.type];
+  B.vx = 0; if (B.type !== 'slime' && B.type !== 'gummy' && B.type !== 'beetle') B.vy = 0;
   if (B.type === 'puffer') B.scale = 1;
 }
 function defeatBoss() {
@@ -1336,13 +1381,21 @@ function updateBoss(B, dt) {
   B.t += dt; if (B.hurtT > 0) B.hurtT -= dt;
   const pc = p.x + p.w / 2, bc = B.x + B.w / 2, rage = B.maxHp - B.hp;
   B.look = pc >= bc ? 1 : -1;
-  if (B.type === 'slime') {
+  if (B.type === 'slime' || B.type === 'gummy') {
+    const gummy = B.type === 'gummy';
     B.vy = Math.min(B.vy + PHYS.GRAVITY * dt, PHYS.MAX_FALL);
     const was = B.onGround;
     moveBody(B, lv, dt);
     if (B.state === 'idle') {
       B.vx = 0;
-      if (B.t > 1.0 - rage * 0.2) { B.state = 'air'; B.t = 0; B.vy = -600 - rage * 50; B.dir = B.look; B.vx = B.dir * (110 + rage * 45); }
+      if (B.t > (gummy ? 0.85 - rage * 0.12 : 1.0 - rage * 0.2)) {
+        B.state = 'air'; B.t = 0; B.vy = -600 - rage * 50; B.dir = B.look; B.vx = B.dir * (110 + rage * 45);
+        if (gummy) B.hops = 1;
+      }
+    } else if (gummy && B.hops > 0 && B.vy > 0 && B.t > 0.3) {
+      // the Gummy King bounces a second time in mid-air, just like you can
+      B.hops = 0; B.t = 0; B.vy = -480; B.dir = B.look; B.vx = B.dir * (130 + rage * 40); Sound.airJump();
+      burst(bc, B.y + B.h, 10, '#ffffff', 160, 3.5, 200, 'star');
     } else if (B.onGround && !was) {
       B.state = 'idle'; B.t = 0; B.vx = 0; G.shake = Math.max(G.shake, 0.2); Sound.thud();
       for (let i = 0; i < 10; i++) addParticle(bc + (Math.random() - 0.5) * 60, B.y + B.h, (Math.random() - 0.5) * 220, -Math.random() * 80, 0.4, 4, 'rgba(255,255,255,.8)', 300);
@@ -1463,7 +1516,8 @@ function step(dt) {
 
   // ---- player movement ----
   const r = playerPhysics(p, held, dt, lv);
-  if (r.jumped) { Sound.jump(); p.squash = 1.3; for (let i = 0; i < 5; i++) addParticle(p.x + p.w / 2, p.y + p.h, (Math.random() - 0.5) * 120, -Math.random() * 40, 0.3, 3, 'rgba(255,255,255,.7)', 200); }
+  if (r.airJump) { Sound.airJump(); p.squash = 1.25; burst(p.x + p.w / 2, p.y + p.h, 8, '#ffffff', 140, 3, 200, 'star'); }
+  else if (r.jumped) { Sound.jump(); p.squash = 1.3; for (let i = 0; i < 5; i++) addParticle(p.x + p.w / 2, p.y + p.h, (Math.random() - 0.5) * 120, -Math.random() * 40, 0.3, 3, 'rgba(255,255,255,.7)', 200); }
   if (r.spring) {
     r.spring.t = 0.35; Sound.spring(); p.squash = 1.4; p.springT = 0.7;
     burst(r.spring.x + 12, r.spring.y, 10, '#ffffff', 160, 3, 300, 'star');
@@ -2296,14 +2350,19 @@ function drawBoss(B, t) {
   if (B.defeated) ctx.scale(1 + B.deadT, Math.max(0.1, 1 - B.deadT));
   if ((B.type === 'beetle' && B.state === 'prep') || (B.type === 'bat' && B.state === 'aim')) ctx.translate(Math.sin(t * 70) * 2, 0);
   const look = B.look || 1;
-  if (B.type === 'slime') {
+  if (B.type === 'slime' || B.type === 'gummy') {
+    const gummy = B.type === 'gummy';
     const sq = B.onGround ? 1 + Math.sin(B.t * 7) * 0.04 : (B.vy < 0 ? 1.15 : 0.9);
     ctx.scale(1 / Math.sqrt(sq), sq);
-    const g = ctx.createRadialGradient(-14, -44, 4, 0, -26, 46); g.addColorStop(0, '#d8c2ff'); g.addColorStop(0.5, '#9d6dff'); g.addColorStop(1, '#5d32c4');
+    if (gummy) ctx.scale(1.08, 1.08);
+    const g = ctx.createRadialGradient(-14, -44, 4, 0, -26, 46);
+    if (gummy) { g.addColorStop(0, '#ffe0f0'); g.addColorStop(0.5, '#ff5fae'); g.addColorStop(1, '#c2307a'); }
+    else { g.addColorStop(0, '#d8c2ff'); g.addColorStop(0.5, '#9d6dff'); g.addColorStop(1, '#5d32c4'); }
+    if (gummy) { ctx.fillStyle = '#e8479a'; for (const ex of [-25, 25]) { ctx.beginPath(); ctx.arc(ex, -48, 11, 0, Math.PI * 2); ctx.fill(); } }
     ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-38, 0); ctx.quadraticCurveTo(-44, -52, 0, -56); ctx.quadraticCurveTo(44, -52, 38, 0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.ellipse(-16, -40, 7, 4, -0.6, 0, Math.PI * 2); ctx.fill();
     bossEyes(-12 + look * 4, -30, 12 + look * 4, -30, 8, look, 'angry');
-    ctx.fillStyle = '#3a1670'; ctx.beginPath(); ctx.ellipse(look * 4, -14, 11, 6, 0, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = gummy ? '#6e0f3d' : '#3a1670'; ctx.beginPath(); ctx.ellipse(look * 4, -14, 11, 6, 0, 0, Math.PI); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillRect(look * 4 - 7, -14, 4, 3); ctx.fillRect(look * 4 + 3, -14, 4, 3);
     crown(0, -54, 1.1);
   } else if (B.type === 'beetle') {

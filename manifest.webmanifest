@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Sky Hopper",
-  "short_name": "Sky Hopper",
-  "description": "A colorful 2.5D platformer: jump, swim and beat 4 bosses. Works offline.",
+  "name": "Hop Hero: Lollipop Adventure",
+  "short_name": "Hop Hero",
+  "description": "A colorful 2.5D platformer: jump, swim and beat 5 bosses. Works offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
